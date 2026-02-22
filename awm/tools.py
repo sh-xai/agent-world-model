@@ -334,7 +334,7 @@ def normalize_scenario_name(scenario: str) -> str:
 
 
 def tools_jsonl_load(path: str) -> list[dict]:
-    with open(path, 'r') as f:
+    with open(path, 'r', encoding='utf-8') as f:
         return [json.loads(line) for line in f.readlines()]
 
 def tools_jsonl_save(data: list[dict], path: str, append: bool = False):

@@ -77,7 +77,7 @@ def run_server(args: Config):
     
     os.environ['PORT'] = str(args.port)
     os.environ['DATABASE_PATH'] = f"sqlite:///{args.db_path}"
-    os.system(f"{sys.executable} {args.temp_server_path}")
+    os.system(f'"{sys.executable}" "{args.temp_server_path}"')
 
 
 def run(config: Config):
