@@ -91,7 +91,53 @@ Saj wants to train an agent on full-spectrum IT support:
 **F: IT Lifecycle & Knowledge (3):** user_provisioning_lifecycle, knowledge_base_runbook, database_administration
 **+1:** container_orchestration
 
-Full design details in plan file: `C:\Users\sajaw\.claude\plans\imperative-giggling-bonbon.md`
+Full design details in: `docs/it-environments-plan.md`
+
+## Training Infrastructure (NOT in AWM repo)
+
+The AWM repo is environments-only — zero training code, no PyTorch, no RL libraries.
+The paper's training used two external frameworks that must be set up separately.
+
+### verl (HybridFlow) — RL Training Engine
+- GitHub: volcengine/verl | PyPI: `pip install verl` (v0.7.0)
+- Paper: arxiv.org/abs/2409.19256 (EuroSys 2025)
+- Handles GRPO optimization, gradient computation, policy updates
+- Supports GRPO natively (plus PPO, REINFORCE++, DAPO, others)
+- Requires CUDA 12.1+ (NVIDIA GPUs), has early ROCm/Ascend support
+- Training backends: FSDP (recommended), Megatron-LM
+- Inference engines: vLLM (v0.8.2 recommended), SGLang
+- Backed by Bytedance/Anyscale/Berkeley/Tsinghua
+
+### Rollout Orchestration — Gap
+The paper mentions managing 1,024 parallel MCP instances per training step with
+pre-fetching (background thread pre-configures next batch during gradient updates).
+This orchestration layer is NOT open-sourced in the AWM repo. Options:
+1. Build custom orchestration bridging verl ↔ AWM environments
+2. Use AgentFly (Agent-One-Lab/AgentFly) — open-source RL framework for LM agents
+   with async execution, resource pools, and GRPO support
+
+### Memento — Alternative: Memory-Based Learning (no weight updates)
+- GitHub: sh-xai/Memento (fork of Agent-on-the-Fly/Memento)
+- Paper concept: "Fine-tuning LLM Agents without Fine-tuning LLMs"
+- Agents improve by storing/retrieving successful past trajectories, not gradient updates
+- Architecture: Planner (GPT-4.1) decomposes → Executor (o3/qwen3-8b) acts via MCP tools
+- Case Bank stores (task, plan, outcome) tuples; Retriever finds relevant past experiences
+- Two retriever modes: non-parametric (embedding similarity) and parametric (learned classifier)
+- Results: 87.9% GAIA, 95% SimpleQA — competitive with frontier models
+- MCP-native tool orchestration already built in
+- Dependencies: openai, fastmcp, torch, transformers, scikit-learn
+
+### Two Paths for IT Agent Training
+| | GRPO (weight updates) | Memento (memory-based) |
+|---|---|---|
+| **Framework** | verl + custom orchestration | Memento |
+| **How it learns** | Update Qwen3 weights via RL | Store/retrieve successful trajectories |
+| **GPU needs** | Heavy (training) | Light (inference only) |
+| **Engineering effort** | High (build orchestration layer) | Medium (integrate with AWM envs) |
+| **Iteration speed** | Slow (hours per training run) | Fast (immediate after trajectory collection) |
+| **Can combine?** | Yes — use Memento to collect trajectories, then GRPO to bake them into weights |
+
+**Decision needed**: Which path (or combination) to pursue before synthesizing environments.
 
 ## Walkthrough Completed
 - Successfully ran DeskQueue (it_service_management_1) end-to-end:
@@ -102,7 +148,12 @@ Full design details in plan file: `C:\Users\sajaw\.claude\plans\imperative-giggl
 
 ## Next Steps
 1. **Clone repo on EVO-X2** and re-download HuggingFace outputs
-2. **Approve plan** for 20 new IT environments
-3. **Synthesize environments** using AWM pipeline (~$11.40 via GPT-5)
-4. **Set up EVO-X2** for inference/training (ROCm, vLLM/llama.cpp, PyTorch)
-5. **Train IT support agent** using GRPO on Qwen3-8B
+2. **Decide training approach**: GRPO (verl) vs Memento (memory-based) vs both
+3. **Approve plan** for 20 new IT environments (see docs/it-environments-plan.md)
+4. **Synthesize environments** using AWM pipeline (~$11.40 via GPT-5)
+5. **Set up training infrastructure** based on chosen approach
+6. **Train/improve IT support agent**
+
+## Related Repos (all on sh-xai GitHub)
+- **sh-xai/agent-world-model** — This repo. Environment synthesis + 1,000 pre-built envs
+- **sh-xai/Memento** — Fork of Agent-on-the-Fly/Memento. Memory-based agent learning via MCP
