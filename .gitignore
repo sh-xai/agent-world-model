@@ -1,0 +1,6 @@
+.env
+__pycache__/
+*.pyc
+.venv/
+outputs/*/databases/
+outputs/*/temp_server_*.py

@@ -45,7 +45,8 @@ def run_server(args: Config):
 
         if 'create_engine(' in line:
             left = line.split('create_engine(')[0]
-            sql_path = f"'sqlite:///{args.db_path}'"
+            abs_db_path = os.path.abspath(args.db_path).replace('\\', '/')
+            sql_path = f"'sqlite:///{abs_db_path}'"
             right = f"create_engine({sql_path}, connect_args={{'check_same_thread': False}})"
             line = f"{left}{right}"
                     
@@ -76,8 +77,10 @@ def run_server(args: Config):
         f.write(new_code)
     
     os.environ['PORT'] = str(args.port)
-    os.environ['DATABASE_PATH'] = f"sqlite:///{args.db_path}"
-    os.system(f'"{sys.executable}" "{args.temp_server_path}"')
+    abs_db_path = os.path.abspath(args.db_path).replace('\\', '/')
+    os.environ['DATABASE_PATH'] = f"sqlite:///{abs_db_path}"
+    import subprocess as _sp
+    _sp.run([sys.executable, args.temp_server_path])
 
 
 def run(config: Config):

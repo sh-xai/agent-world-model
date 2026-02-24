@@ -8,6 +8,19 @@ from openai.types.chat import ChatCompletion
 from loguru import logger
 from tqdm.asyncio import tqdm
 
+# Arize AX observability — auto-instruments all OpenAI calls
+if os.environ.get("ARIZE_SPACE_ID") and os.environ.get("ARIZE_API_KEY"):
+    from arize.otel import register
+    from openinference.instrumentation.openai import OpenAIInstrumentor
+
+    _tracer_provider = register(
+        space_id=os.environ["ARIZE_SPACE_ID"],
+        api_key=os.environ["ARIZE_API_KEY"],
+        project_name=os.environ.get("ARIZE_PROJECT", "awm-synthesis"),
+    )
+    OpenAIInstrumentor().instrument(tracer_provider=_tracer_provider)
+    logger.info("Arize AX tracing enabled")
+
 
 class ChatCompletionFallback(dict):
     def __init__(self, data: dict[str, any]):

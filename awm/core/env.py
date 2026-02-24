@@ -186,18 +186,18 @@ def test_run_specific_env(idx: int, env_config: dict) -> tuple[bool, str, dict]:
 
         if not wait_for_server(port, timeout=30):
             logger.error(f"{scenario_name} Server failed to start on port {port} (timeout after 30s)")
-            
+
             try:
-                os.killpg(os.getpgid(server_process.pid), signal.SIGTERM)
-            except ProcessLookupError:
+                server_process.terminate()
+            except (ProcessLookupError, OSError):
                 pass
 
             try:
                 stdout, _ = server_process.communicate(timeout=5)
             except subprocess.TimeoutExpired:
                 try:
-                    os.killpg(os.getpgid(server_process.pid), signal.SIGKILL)
-                except ProcessLookupError:
+                    server_process.kill()
+                except (ProcessLookupError, OSError):
                     pass
                 stdout, _ = server_process.communicate()
             
@@ -210,18 +210,18 @@ def test_run_specific_env(idx: int, env_config: dict) -> tuple[bool, str, dict]:
             return False, stdout, env_config
         
         logger.info(f"{scenario_name} Server started successfully on port {port}")
-        
+
         try:
-            os.killpg(os.getpgid(server_process.pid), signal.SIGTERM)
-        except ProcessLookupError:
+            server_process.terminate()
+        except (ProcessLookupError, OSError):
             pass
-            
+
         try:
             server_process.wait(timeout=5)
         except subprocess.TimeoutExpired:
             try:
-                os.killpg(os.getpgid(server_process.pid), signal.SIGKILL)
-            except ProcessLookupError:
+                server_process.kill()
+            except (ProcessLookupError, OSError):
                 pass
             server_process.wait()
 
